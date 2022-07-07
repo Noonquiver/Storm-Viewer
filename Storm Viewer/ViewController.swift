@@ -8,8 +8,9 @@
 import UIKit
 
 class ViewController: UICollectionViewController {
-    var pictures = Array<String>()
-
+    var pictureStrings = Array<String>()
+    var pictures = Array<Image>()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -23,31 +24,52 @@ class ViewController: UICollectionViewController {
 
         for item in items {
             if item.hasPrefix("nssl") {
-                pictures.append(item)
+                pictureStrings.append(item)
             }
         }
         
-        pictures.sort()
+        pictureStrings.sort()
+        
+        for string in pictureStrings {
+            let image = Image(title: string)
+            pictures.append(image)
+        }
+        
+        let JSONDecoder = JSONDecoder()
+        guard let savedImages = UserDefaults.standard.object(forKey: "pictures") as? Data else { return }
+        
+        if let decodedImages = try? JSONDecoder.decode([Image].self, from: savedImages) {
+            pictures = decodedImages
+        }
     }
 
     override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return pictures.count
+        return pictureStrings.count
     }
 
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let imageString = pictureStrings[indexPath.item]
+        let image = retrieveImage(using: imageString)
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "Picture", for: indexPath) as? ImageCell else {
             fatalError("Unable to dequeue ImageCell.")
         }
         
-        cell.title.text = pictures[indexPath.item]
+        cell.title.text = imageString
+        cell.subtitle.text = "Times shown: \(String(image.timesShown))"
         
         return cell
     }
     
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        let imageString = pictureStrings[indexPath.item]
+        let image = retrieveImage(using: imageString)
+        
         if let vc = storyboard?.instantiateViewController(withIdentifier: "Detail") as? DetailViewController {
-            vc.selectedImage = pictures[indexPath.item]
-            vc.customTitle = "Picture \(indexPath.item + 1) of \(pictures.count)"
+            vc.selectedImage = imageString
+            vc.customTitle = "Picture \(indexPath.item + 1) of \(pictureStrings.count)"
+            image.timesShown += 1
+            saveImages()
+            collectionView.reloadData()
             navigationController?.pushViewController(vc, animated: true)
         }
     }
@@ -57,5 +79,25 @@ class ViewController: UICollectionViewController {
         viewController.popoverPresentationController?.barButtonItem = navigationItem.rightBarButtonItem
         
         present(viewController, animated: true)
+    }
+    
+    func saveImages() {
+        let JSONEncoder = JSONEncoder()
+        
+        if let savedPictures = try? JSONEncoder.encode(pictures) {
+            UserDefaults.standard.set(savedPictures, forKey: "pictures")
+        }
+    }
+    
+    func retrieveImage(using imageString: String) -> Image {
+        var image = Image(title: "")
+        
+        for picture in pictures {
+            if picture.title.elementsEqual(imageString) {
+                image = picture
+            }
+        }
+        
+        return image
     }
 }

@@ -9,4 +9,5 @@ import UIKit
 
 class ImageCell: UICollectionViewCell {
     @IBOutlet var title: UILabel!
+    @IBOutlet var subtitle: UILabel!
 }

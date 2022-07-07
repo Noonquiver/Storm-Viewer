@@ -7,8 +7,9 @@
 
 import UIKit
 
-class Image: NSObject {
+class Image: Codable {
     var title: String
+    var timesShown: Int = 0
     
     init(title: String) {
         self.title = title
